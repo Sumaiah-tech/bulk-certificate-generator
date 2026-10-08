@@ -1,0 +1,63 @@
+x-app-env: &app-env
+  DATABASE_URL: postgresql+psycopg2://certgen:certgen@db:5432/certgen
+  REDIS_URL: redis://redis:6379/0
+  STORAGE_DIR: /app/storage
+  API_KEYS: ${API_KEYS:-dev-secret-key}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: certgen
+      POSTGRES_PASSWORD: certgen
+      POSTGRES_DB: certgen
+    ports:
+      - "5432:5432"   # only needed for running the API outside Docker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U certgen -d certgen"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"   # only needed for running the API/worker outside Docker
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment: *app-env
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: celery -A app.celery_app.celery_app worker --loglevel=info --concurrency=4
+    environment: *app-env
+    volumes:
+      - storage:/app/storage   # same volume as the API so it can serve the PDFs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  storage:

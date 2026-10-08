@@ -1,0 +1,12 @@
+{
+  "event_name": "Python Bootcamp 2026",
+  "issuer": "DSCE Coding Club",
+  "issue_date": "2026-10-08",
+  "recipients": [
+    { "name": "Ada Lovelace", "email": "ada@example.com" },
+    { "name": "Alan Turing", "email": "alan@example.com" },
+    { "name": "Grace Hopper", "email": "grace@example.com" },
+    { "name": "Not An Email", "email": "oops" },
+    { "name": "Ada Again", "email": "ADA@example.com" }
+  ]
+}
